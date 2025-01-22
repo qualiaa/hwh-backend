@@ -1,8 +1,8 @@
 import os
+import tomllib
 from textwrap import dedent
 
 import pytest
-import toml
 
 from hwh_backend.hwh_config import (
     CythonCompilerDirectives,
@@ -15,14 +15,16 @@ from hwh_backend.parser import PyProject
 
 @pytest.fixture()
 def toml_no_hwh(tmp_path, sample_pyproject):
-    pyproj_content = toml.loads(sample_pyproject)
+    import tomli_w
+
+    pyproj_content = tomllib.loads(sample_pyproject)
     assert isinstance(pyproj_content, dict)
     del pyproj_content["tool"]["hwh"]
     project_dir = tmp_path / "test_project2"
     project_dir.mkdir()
     toml_path = project_dir / "pyproject.toml"
-    with open(toml_path, "w") as f:
-        toml.dump(pyproj_content, f)
+    with open(toml_path, "wb") as f:
+        tomli_w.dump(pyproj_content, f)
 
     readme_path = project_dir / "README.md"
     readme_path.write_text("lorem ipsum")
@@ -91,14 +93,14 @@ def test_invalid_compiler_directives():
 
     with pytest.raises(ValueError):
         toml_str = invalid_cases[0]
-        config = toml.loads(dedent(toml_str))
+        config = tomllib.loads(dedent(toml_str))
         CythonCompilerDirectives(
             **config["tool"]["hwh"]["cython"]["compiler_directives"]
         )
 
     with pytest.raises(TypeError):
         toml_str = invalid_cases[1]
-        config = toml.loads(dedent(toml_str))
+        config = tomllib.loads(dedent(toml_str))
         CythonCompilerDirectives(
             **config["tool"]["hwh"]["cython"]["compiler_directives"]
         )
@@ -124,5 +126,5 @@ def test_invalid_directive_values():
 
     for toml_str in invalid_cases:
         with pytest.raises((ValueError, TypeError)):
-            config = toml.loads(dedent(toml_str))
+            config = tomllib.loads(dedent(toml_str))
             conf_obj = CythonConfig(**config["tool"]["hwh"]["cython"])
