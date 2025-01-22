@@ -15,7 +15,6 @@ build-backend = "hwh_backend.build"
 name = "mylib"
 version = "1.0.0"
 
-
 [tool.hwh.cython.modules]
 include_dirs = ["first", "second"]
 runtime_library_dirs = ["/usr/lib"]
@@ -47,10 +46,4 @@ type_version_tag = true  # Enable CPython's type attribute cache
 # All cython modules go here
 [tool.hwh_backend.cython.modules]
 sources = [mylib/*.pyx]
-
-[tool.hwh_backend.cython.compiler_directives]
-language_level = 3
-binding = true
-boundscheck = false
-wraparound = false
 ```
