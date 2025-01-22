@@ -1,4 +1,4 @@
-# Halway House backend 
+# Halfway House backend 
 
 [![Publish to PyPI](https://github.com/mkgessen/hwh-backend/actions/workflows/python-publish.yml/badge.svg)](https://github.com/mkgessen/hwh-backend/actions/workflows/python-publish.yml)
 
