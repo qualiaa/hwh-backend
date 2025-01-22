@@ -6,7 +6,7 @@ build-backend = "setuptools.build_meta"
 name = "hwh-backend"
 version = "0.1.0"
 description = "Setuptools based backend supporting Cython extensions"
-authors = [{ name = "Mathias von Essen", email = "mail.me@foo.com" }]
+authors = [{ name = "Mathias von Essen", email = "3090690+mkgessen@users.noreply.github.com" }]
 readme = "README.md"
 requires-python = ">=3.11"
 license = { text = "MIT" }
