@@ -1,8 +1,9 @@
-# hwh-backend
+# Halway House backend 
 
-Setuptools backend isn't great with building Cython extensions. This project
-aims to get half way there. Ideally similar functionality would be provided an
-actual setuptools backend
+Provides [PEP-517](https://peps.python.org/pep-0517/) build hooks for building Cython extensions with setuptools.
+Currently supports Cython 0.29. 
+
+Ideally similar functionality would be provided an actual setuptools backend.
 
 ## Intended use
 
