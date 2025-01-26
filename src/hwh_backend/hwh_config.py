@@ -30,6 +30,14 @@ class CythonCompilerWarningDirectives:
 
 @dataclass
 class CythonCompilerDirectives:
+    # only language level "3" is supported, so hardcoding it
+    _language_level: str = field(init=False, default="3", repr=False)
+
+    @property
+    def language_level(self) -> str:
+        """Language level is fixed at '3' for Python 3 compatibility."""
+        return self._language_level
+
     # see https://cython.readthedocs.io/en/0.29.x/src/userguide/source_files_and_compilation.html#compiler-directives
     # Defaults are documentation's defauls
     binding: bool = False
@@ -58,14 +66,20 @@ class CythonCompilerDirectives:
     def as_dict(self) -> dict[str, str | bool]:
         """Convert directives to dictionary for cythonize()."""
         return {
-            key: value
-            for key, value in self.__dict__.items()
-            if value is not None  # Skip None values
+            "language_level": self.language_level,  # Always include this
+            **{
+                key: value
+                for key, value in self.__dict__.items()
+                if not key.startswith("_") and value is not None
+            },
         }
 
     def __post_init__(self):
         """Validate types and values after initialization."""
         for field_name, field_value in self.__dict__.items():
+            if field_name == "_language_level":
+                continue  # ignore language_level, since it should be always 3
+
             field_type = self.__annotations__[field_name]
 
             # Type validation
