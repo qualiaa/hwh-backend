@@ -67,7 +67,6 @@ language="c"
 annotate=false
 
 [tool.hwh.cython.compiler_directives]
-language_level = "3"
 binding = false
 boundscheck = false
 wraparound = false

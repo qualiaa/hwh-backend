@@ -40,4 +40,3 @@ def test_hwh_config(tmp_path, sample_pyproject):
     parser = PyProject(project_dir)
     config = parser.get_hwh_config()
     assert config.cython.language == "c"
-    assert config.cython.compiler_directives.language_level == "3"
