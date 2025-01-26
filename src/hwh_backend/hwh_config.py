@@ -9,6 +9,13 @@ class Language(StrEnum):
     CPP = "c++"
 
 
+class SitePackages(StrEnum):
+    PURELIB = "pure"  # use sysconfig.get_path('purelib')
+    USER = "user"  # use site.getusersitepackages()
+    SITE = "site"  # use site.getsitepackages()
+    NONE = "none"  # don't add sitepackages at all
+
+
 @dataclass
 class CythonCompilerWarningDirectives:
     # TODO: Unused atm
@@ -81,7 +88,8 @@ class CythonCompilerDirectives:
                         f"got {type(field_value).__name__}"
                     )
 
-            # Value validation for specific fields
+            # Value validation for language level
+            # FIXME: Should be StrEnum
             if (
                 field_name == "language_level"
                 and field_value not in self.VALID_LANGUAGE_LEVELS
@@ -106,6 +114,7 @@ class CythonConfig:
     include_dirs: list[str] = field(default_factory=list)
     library_dirs: list[str] = field(default_factory=list)
     runtime_library_dirs: list[str] = field(default_factory=list)
+    site_packages: SitePackages = field(default=SitePackages.PURELIB)
 
     def __post_init__(self):
         if isinstance(self.compiler_directives, dict):
@@ -116,10 +125,12 @@ class CythonConfig:
         if isinstance(self.language, str):
             try:
                 self.language = Language(self.language.lower())
-            except ValueError:
+            except ValueError as e:
                 raise ValueError(
-                    f"Invalid language value: {self.language}. Must be one of {[lang.value for lang in Language]}"
-                )
+                    f"Invalid language: {self.language}. Valid options {
+                        [lang.value for lang in Language]
+                    }"
+                ) from e
 
     @classmethod
     def from_pyproject(cls, tool_config: dict) -> "CythonConfig":
@@ -145,6 +156,7 @@ class CythonConfig:
             include_dirs=include_dirs,
             library_dirs=library_dirs,
             runtime_library_dirs=runtime_library_dirs,
+            site_packages=cython_config.get("site_packages") or SitePackages.PURELIB,
         )
 
 
