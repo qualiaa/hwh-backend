@@ -32,9 +32,6 @@ class CythonCompilerWarningDirectives:
 class CythonCompilerDirectives:
     # see https://cython.readthedocs.io/en/0.29.x/src/userguide/source_files_and_compilation.html#compiler-directives
     # Defaults are documentation's defauls
-    language_level: str = "3"
-    VALID_LANGUAGE_LEVELS = {"2", "3", "3str"}
-
     binding: bool = False
     boundscheck: bool = True
     wraparound: bool = True
@@ -88,17 +85,6 @@ class CythonCompilerDirectives:
                         f"got {type(field_value).__name__}"
                     )
 
-            # Value validation for language level
-            # FIXME: Should be StrEnum
-            if (
-                field_name == "language_level"
-                and field_value not in self.VALID_LANGUAGE_LEVELS
-            ):
-                raise ValueError(
-                    f"language_level must be one of {self.VALID_LANGUAGE_LEVELS}, "
-                    f"got '{field_value}'"
-                )
-
 
 @dataclass
 class CythonConfig:
@@ -126,10 +112,9 @@ class CythonConfig:
             try:
                 self.language = Language(self.language.lower())
             except ValueError as e:
+                valid_options = [lang.value for lang in Language]
                 raise ValueError(
-                    f"Invalid language: {self.language}. Valid options {
-                        [lang.value for lang in Language]
-                    }"
+                    f"Invalid language: {self.language}. Valid options {valid_options}"
                 ) from e
 
     @classmethod

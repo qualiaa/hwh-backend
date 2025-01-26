@@ -33,7 +33,7 @@ requires-python = ">=3.11"
     content += """
 [tool.hwh.cython]
 language = "c"
-compiler_directives = { language_level = "3" }
+compiler_directives = { }
 """
 
     with open(pkg_dir / "pyproject.toml", "w") as f:

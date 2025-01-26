@@ -10,13 +10,12 @@ from hwh_backend.hwh_config import (
 
 @pytest.fixture
 def minimal_config():
-    return {"language": "c", "compiler_directives": {"language_level": "3"}}
+    return {"language": "c", "compiler_directives": {}}
 
 
 def test_basic_config(minimal_config):
     config = CythonConfig(**minimal_config)
     assert config.language == Language.C
-    assert config.compiler_directives.language_level == "3"
 
 
 def test_site_packages_config():
@@ -30,8 +29,8 @@ def test_invalid_language():
 
 
 def test_compiler_directives_validation():
-    with pytest.raises(ValueError):
-        CythonCompilerDirectives(language_level="invalid")
+    with pytest.raises(TypeError):
+        CythonCompilerDirectives(boundscheck="invalid")
 
 
 def test_compiler_directives_types():
@@ -48,9 +47,7 @@ def test_complete_config():
         library_dirs=["/usr/lib"],
         runtime_library_dirs=["/usr/lib"],
         site_packages=SitePackages.SITE,
-        compiler_directives=CythonCompilerDirectives(
-            language_level="3", boundscheck=False
-        ),
+        compiler_directives=CythonCompilerDirectives(boundscheck=False),
     )
     assert config.language == Language.CPP
     assert len(config.sources) == 2
