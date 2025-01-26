@@ -131,6 +131,15 @@ def _get_ext_modules(project: PyProject, config_settings: Optional[dict] = None)
     runtime_library_dirs = config.runtime_library_dirs
     include_dirs = config.include_dirs + site_packages
 
+    if config.use_numpy_include:
+        try:
+            import numpy
+
+            include_dirs += [numpy.get_include()]
+        except ModuleNotFoundError as e:
+            print("Numpy headers requested, but numpy installation was not found")
+            raise ModuleNotFoundError from e
+
     debug_print(f"Library dirs: {library_dirs}")
     debug_print(f"Runtime library dirs: {runtime_library_dirs}")
     debug_print(f"Include dirs: {include_dirs}")
@@ -152,7 +161,7 @@ def _get_ext_modules(project: PyProject, config_settings: Optional[dict] = None)
         # use case being that python -m build gets called when build/
         # already exists. This would cause find_cython_files to find .pyx files
         # we want to exclude from the build
-        exclude_dirs=config.exclude_dirs + [package_dir / "build"],
+        exclude_dirs=config.exclude_dirs + [str(package_dir / "build")],
     )
     debug_print(f"Found .pyx files: {pyx_files}")
 
@@ -177,6 +186,7 @@ def _get_ext_modules(project: PyProject, config_settings: Optional[dict] = None)
         ext = Extension(
             module_path,
             [str(pyx_file)],
+            include_dirs=include_dirs,
             language=config.language,
             library_dirs=library_dirs,
             runtime_library_dirs=runtime_library_dirs,

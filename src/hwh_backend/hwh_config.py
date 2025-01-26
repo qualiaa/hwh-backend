@@ -116,6 +116,9 @@ class CythonConfig:
     runtime_library_dirs: list[str] = field(default_factory=list)
     site_packages: SitePackages = field(default=SitePackages.PURELIB)
 
+    # include_dirs += numpy.get_include()
+    use_numpy_include: bool = False
+
     def __post_init__(self):
         if isinstance(self.compiler_directives, dict):
             self.compiler_directives = CythonCompilerDirectives(
@@ -156,6 +159,7 @@ class CythonConfig:
             library_dirs=library_dirs,
             runtime_library_dirs=runtime_library_dirs,
             site_packages=cython_config.get("site_packages") or SitePackages.PURELIB,
+            use_numpy_include=cython_config.get("use_numpy_include", False),
         )
 
 
