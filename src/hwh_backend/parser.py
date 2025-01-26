@@ -13,6 +13,10 @@ class PyProject:
     def __init__(self, project_dir: Path):
         self.project_dir = project_dir
         self.pyproject_path = project_dir / "pyproject.toml"
+        if not self.pyproject_path.exists():
+            raise FileNotFoundError(
+                f"Couldn't locate pyproject.toml from {str(self.project_dir)}"
+            )
         self._data: Optional[Dict[str, Any]] = None
 
     @property
@@ -36,7 +40,6 @@ class PyProject:
     def dependencies(self) -> set[Requirement]:
         metadata = self.metadata
 
-        # Combine runtime and build dependencies
         all_deps = set(metadata.dependencies)
 
         # Add build-system requires if present
@@ -58,7 +61,9 @@ class PyProject:
 
     @property
     def package_version(self) -> Optional[Version]:
+        """Get the package version from pyproject.toml"""
         return self.metadata.version
 
     def get_hwh_config(self) -> HwhConfig:
+        # TODO: switch to property
         return HwhConfig(self.toml)

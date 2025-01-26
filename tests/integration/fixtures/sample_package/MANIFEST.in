@@ -1,0 +1,3 @@
+include README.md
+recursive-include sample_package *.pxd
+
