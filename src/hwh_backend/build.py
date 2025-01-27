@@ -404,7 +404,7 @@ def build_wheel(wheel_directory, config_settings=None, metadata_directory=None):
 def build_editable(wheel_directory, config_settings=None, metadata_directory=None):
     """Build editable wheel."""
 
-    setup_logger.ing(config_settings)
+    setup_logging(config_settings)
     logger.debug("=== Starting build_editable ===")
     logger.debug(f"Wheel directory: {wheel_directory}")
     logger.debug(f"Config settings: {config_settings}")
@@ -424,7 +424,7 @@ def build_editable(wheel_directory, config_settings=None, metadata_directory=Non
 def build_sdist(sdist_directory, config_settings=None):
     """Build source distribution. How is that meant to work with compiled code?"""
 
-    setup_logger.ing(config_settings)
+    setup_logging(config_settings)
     from setuptools.build_meta import build_sdist as _build_sdist
 
     return _build_sdist(sdist_directory, config_settings)

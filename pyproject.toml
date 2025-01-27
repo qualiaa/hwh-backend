@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "hwh-backend"
-version = "0.2.0"
+version = "0.2.1"
 description = "Setuptools based backend supporting Cython extensions"
 authors = [
     { name = "Mathias von Essen", email = "3090690+mkgessen@users.noreply.github.com" },
