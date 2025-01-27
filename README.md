@@ -39,10 +39,18 @@ described in [[tool.hwh.cython]] and [[tool.cython.modules]].
     build process
   - `python -m build --wheel --no-isolation configuration-setting annotate=true
   configuration-setting nthreads=10 configuration-setting force=true`
+  - same arguments can be passes to `pip`, but in that case the format is
+    slightly different: `pip install -e . --config-settings annote=true`
     - **annotate** (bool): build annotation .html files is set true
     - nthreads (int): number of threads allocated defaults to `os.cpu_count()`
       or 1 in case where cpu count in undefined
     - force (bool): force extensions to be rebuilt if set to true
+- PIP's verbosity level unfortunately doesn't work in the hooks because I can't
+  figure out how to implement, but verbosity level can be controlled through
+  `verbose`
+  - `pip install --configuration-settings verbose=debug`
+  - options are: `debug`, `info` and `warning` and they map to the same levels
+    of the logging facility
 
 HWH backend provides an additional **optional** section to `pyproject.toml`.
 Valid options are shown in the example below. If `[tool.hwh]` is absent
@@ -146,3 +154,7 @@ profile = false  # Enable profiling
 linetrace = false  # Enable line tracing
 type_version_tag = true  # Enable CPython's type attribute cache
 ```
+
+## TODO
+
+- [ ] Allow passing of macros `-D` and extra flags like `-O2`
