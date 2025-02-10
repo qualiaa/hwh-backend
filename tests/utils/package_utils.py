@@ -11,7 +11,7 @@ def create_pyproject_toml(
     version: str = "0.1.0",
     pkg_dir_name: Optional[str] = None,
 ) -> None:
-    """Create a pyproject.toml file with specified configuration."""
+    """Create a pyproject.toml file with setuptools.packages.find section."""
     content = f"""
 [build-system]
 requires = [
@@ -30,15 +30,24 @@ requires-python = ">=3.11"
         for dep in dependencies:
             content += f'    "{dep}",\n'
         content += "]\n"
+
+    # Write setuptools section
     if pkg_dir_name:
         content += f"""
-[tool.setuptools]
-packages = ["{pkg_dir_name}"]
+[tool.setuptools.packages.find]
+where = ["."]  # or ["src"] if using src layout
+include = ["{pkg_dir_name}*"]  # includes subpackages
 """
+    else:
+        content += """
+[tool.setuptools.packages.find]
+where = ["."]  # or ["src"] if using src layout
+"""
+
     content += """
 [tool.hwh.cython]
 language = "c"
-compiler_directives = { }
+compiler_directives = {  }
 """
 
     with open(pkg_dir / "pyproject.toml", "w") as f:
@@ -57,13 +66,14 @@ def create_test_package(
     pkg_dir = base_dir / project_name
     pkg_dir.mkdir(parents=True)
 
-    import_name = pkg_dir_name or project_name
+    # Use pkg_dir_name if provided, otherwise use project_name
+    import_name = pkg_dir_name or project_name.replace("-", "_")
 
     # Create package directory
     src_dir = pkg_dir / import_name
     src_dir.mkdir()
 
-    # Add empty scripts dir. We'll write stuff there during the tests
+    # Add empty scripts dir for tests. Might use it?
     script_dir = pkg_dir / "scripts"
     script_dir.mkdir()
 
@@ -73,22 +83,22 @@ def create_test_package(
         full_path.parent.mkdir(parents=True, exist_ok=True)
         full_path.write_text(content)
 
-    (src_dir / "__init__.py").touch()
+    (src_dir / "__init__.py").write_text("")
 
-    # Create the package boilerplate files
     create_pyproject_toml(
-        pkg_dir, project_name, backend_dir, dependencies, pkg_dir_name=pkg_dir_name
+        pkg_dir, project_name, backend_dir, dependencies, pkg_dir_name=import_name
     )
 
     (pkg_dir / "README.md").write_text(f"# {project_name}\nTest package")
 
+    # Create MANIFEST.in with Cython files. Needs README for pip wheel not to nag
     manifest_content = f"""
 include README.md
 recursive-include {import_name} *.pxd
 recursive-include {import_name} *.pyx
 """
-
     (pkg_dir / "MANIFEST.in").write_text(manifest_content)
+
     return pkg_dir
 
 

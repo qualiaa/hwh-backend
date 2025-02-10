@@ -1,4 +1,3 @@
-import os
 import tomllib
 from pathlib import Path
 from typing import Any, Dict, Optional
@@ -86,38 +85,40 @@ class PyProject:
         return self._discover_packages()
 
     def _discover_packages(self) -> list[str]:
-        """Discover packages using setuptools configuration."""
+        """Discover packages using setuptools.packages.find configuration."""
         setuptools_config = self.setuptools_config
 
-        # Direct package listing
-        packages = setuptools_config.get("packages", None)
-        print(f"direct packages {packages}")
-        if isinstance(packages, list):
-            return packages
+        # Check for packages.find
+        packages_find = setuptools_config.get("packages", {}).get("find", {})
+        if packages_find:
+            # Get base directory for package search
+            where = packages_find.get("where", ["."])
+            if isinstance(where, str):
+                where = [where]
 
-        packages_config = setuptools_config.get("packages", {})
-        if isinstance(packages_config, dict):
-            find_config = packages_config.get("find", {})
-            if find_config:
-                print("finding config")
-                where = ["."]
-                if self.package_dir and "" in self.package_dir:
-                    where = [self.package_dir[""]]
-                search_dir = self.project_dir / where[0]
+            # Get include/exclude patterns. Default to include all.
+            include = packages_find.get("include", ["*"])
+            exclude = packages_find.get("exclude", [])
 
-                include = find_config.get("include", ["*"])
-                exclude = find_config.get("exclude", [])
-                print(f"Includes {include}")
-                print(f"Excludes {exclude}")
-                print(f"Finding {where}")
-                print(os.getcwd())
+            # Convert paths relative to project root
+            search_dirs = [self.project_dir / w for w in where]
+
+            found_packages = []
+            for search_dir in search_dirs:
                 found = find_packages(
                     where=str(search_dir), include=include, exclude=exclude
                 )
-                print(f"Found {found}")
-                return found
+                found_packages.extend(found)
 
-        # Default to package name
+            if found_packages:
+                return found_packages
+
+        # Fallback to direct package list if specified
+        packages = setuptools_config.get("packages", None)
+        if isinstance(packages, list):
+            return packages
+
+        # Default to package name as last resort
         return [self.package_name]
 
     def get_package_path(self, package: str) -> Path:

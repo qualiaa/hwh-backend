@@ -60,9 +60,8 @@ build-backend = "hwh_backend.build"
 name = "mypackage"
 version = "0.1.0"
 
-[tool.setuptools]
-packages = ["mypackage", "mypackage.subpkg1", "mypackage.subpkg2"]
-package-dir = {{ "" = "src" }}
+[tool.setuptools.packages.find]
+where = ["src"]
 """)
 
     project = PyProject(package_test_dir)
@@ -90,9 +89,11 @@ build-backend = "hwh_backend.build"
 name = "mypackage"
 version = "0.1.0"
 
-[tool.setuptools]
-package-dir = {{ "" = "src" }}
-packages.find = {{ include = ["mypackage*"], exclude = ["mypackage.subpkg2*"] }}
+[tool.setuptools.packages.find]
+where = ["src"]
+exclude = ["mypackage.subpkg2*"]
+
+
 """)
 
     project = PyProject(package_test_dir)
@@ -152,8 +153,11 @@ build-backend = "hwh_backend.build"
 name = "my-cool-project"  # Different from package name
 version = "0.1.0"
 
-[tool.setuptools]
-packages = ["coolproject"]  # The actual Python package name
+[tool.setuptools.packages.find]
+# where = ["src"]
+include = ["coolproject"]
+
+
 """)
 
     # Test the package discovery
@@ -178,12 +182,19 @@ packages = ["coolproject"]  # The actual Python package name
     assert all_paths[0] == package_test_dir / "coolproject"
 
 
-def test_different_names_installation(tmp_path, backend_dir, test_env):
-    """Test installation of a package where project name differs from package name."""
+def test_different_names_installation(tmp_path):
+    """Test installation of a package where project name differs from package name.
+    e.g. pkg-name, but pkg_name as a dir"""
+    backend_dir = Path(__file__).parent.parent.parent.absolute()
+
+    # Create test environment with explicit backend path
+    venv_dir = create_virtual_env(tmp_path / "venv")
+    setup_test_env(venv_dir, backend_dir)
+
     # Create Cython file content
     cython_files = {
         "core.pyx": """
-def get_message():
+cpdef get_message():
     return "Hello from coolproject Cython module"
 """
     }
@@ -208,9 +219,14 @@ print("Import test passed!")
 """)
 
     try:
-        # Test regular installation
-        run_in_venv(test_env, ["pip", "install", str(package_dir)], show_output=True)
-        verify_installation(test_env, test_script, "Import test passed!")
+        # NOTE: Can't test regular install w/o --no-build-isolation
+        # because the isolated environment will pull everything from PyPI
+        run_in_venv(
+            venv_dir,
+            ["pip", "install", "--no-build-isolation", str(package_dir)],
+            show_output=True,
+        )
+        verify_installation(venv_dir, test_script, "Import test passed!")
 
         # Test editable installation
         editable_env = create_virtual_env(tmp_path / "editable_env")
@@ -227,14 +243,23 @@ print("Import test passed!")
             "Hello from coolproject", "Modified hello from coolproject"
         )
 
+        modified_test_script = package_dir / "scripts" / "test_modified.py"
+        modified_test_script.write_text("""
+from coolproject.core import get_message
+
+result = get_message()
+assert result == "Modified hello from coolproject Cython module"
+print("Modified test passed!")
+""")
+
         verify_editable_install(
             editable_env,
             package_dir,
             source_file,
             original_content,
             modified_content,
-            test_script,
-            "Modified message test passed!",
+            modified_test_script,
+            "Modified test passed!",
         )
 
     except subprocess.CalledProcessError as e:
