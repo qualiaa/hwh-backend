@@ -1,3 +1,4 @@
+import os
 import tomllib
 from pathlib import Path
 from typing import Any, Dict, Optional
@@ -5,6 +6,7 @@ from typing import Any, Dict, Optional
 from packaging.requirements import Requirement
 from packaging.version import Version
 from pyproject_metadata import StandardMetadata
+from setuptools import find_packages
 
 from .hwh_config import HwhConfig
 
@@ -67,3 +69,73 @@ class PyProject:
     def get_hwh_config(self) -> HwhConfig:
         # TODO: switch to property
         return HwhConfig(self.toml)
+
+    @property
+    def setuptools_config(self) -> dict:
+        """Get setuptools configuration from pyproject.toml."""
+        return self.toml.get("tool", {}).get("setuptools", {})
+
+    @property
+    def package_dir(self) -> dict:
+        """Get package directory mapping from setuptools config."""
+        return self.setuptools_config.get("package-dir", {})
+
+    @property
+    def packages(self) -> list[str]:
+        """Get list of packages to include."""
+        return self._discover_packages()
+
+    def _discover_packages(self) -> list[str]:
+        """Discover packages using setuptools configuration."""
+        setuptools_config = self.setuptools_config
+
+        # Direct package listing
+        packages = setuptools_config.get("packages", None)
+        print(f"direct packages {packages}")
+        if isinstance(packages, list):
+            return packages
+
+        packages_config = setuptools_config.get("packages", {})
+        if isinstance(packages_config, dict):
+            find_config = packages_config.get("find", {})
+            if find_config:
+                print("finding config")
+                where = ["."]
+                if self.package_dir and "" in self.package_dir:
+                    where = [self.package_dir[""]]
+                search_dir = self.project_dir / where[0]
+
+                include = find_config.get("include", ["*"])
+                exclude = find_config.get("exclude", [])
+                print(f"Includes {include}")
+                print(f"Excludes {exclude}")
+                print(f"Finding {where}")
+                print(os.getcwd())
+                found = find_packages(
+                    where=str(search_dir), include=include, exclude=exclude
+                )
+                print(f"Found {found}")
+                return found
+
+        # Default to package name
+        return [self.package_name]
+
+    def get_package_path(self, package: str) -> Path:
+        """Convert a package name to its directory path."""
+        base = self.project_dir
+
+        # Handle package-dir mapping
+        for prefix, directory in self.package_dir.items():
+            if prefix == "":  # Root package
+                base = base / directory
+                break
+            if package.startswith(prefix):
+                base = base / directory
+                package = package[len(prefix) :].lstrip(".")
+                break
+
+        return base / package.replace(".", "/")
+
+    def get_all_package_paths(self) -> list[Path]:
+        """Get paths for all configured packages."""
+        return [self.get_package_path(pkg) for pkg in self.packages]

@@ -7,7 +7,6 @@ from pathlib import Path
 from typing import List, Optional, Union
 
 from Cython.Build import cythonize
-from setuptools import find_packages
 from setuptools.build_meta import (
     build_editable as _build_editable,
 )
@@ -106,6 +105,20 @@ def find_cython_files(
     return list(all_pyx)
 
 
+def resolve_package_path(
+    pyx_file: Path, package_paths: List[Path]
+) -> Optional[tuple[str, Path]]:
+    """Resolve a .pyx file to its package name and relative path."""
+    return next(
+        (
+            (pkg_path.name, pyx_file.relative_to(pkg_path))
+            for pkg_path in package_paths
+            if pyx_file.is_relative_to(pkg_path)
+        ),
+        None,
+    )
+
+
 def _get_ext_modules(project: PyProject, config_settings: Optional[dict] = None):
     """Get Cython extension modules configuration."""
     logger.debug("=== Starting _get_ext_modules ===")
@@ -144,6 +157,8 @@ def _get_ext_modules(project: PyProject, config_settings: Optional[dict] = None)
     logger.debug(f"Include dirs: {include_dirs}")
 
     # Find all .pyx files in the package directory
+    package_paths = project.get_all_package_paths()
+    logger.debug(f"Package paths: {package_paths}")
     # FIXME: Extension class' docstrings state that files are searched from the
     #  root downwards. Currently we only support <pkg_name>/<pkg_name>/<pyx files here>
     # kind of file tree
@@ -152,34 +167,37 @@ def _get_ext_modules(project: PyProject, config_settings: Optional[dict] = None)
     logger.debug(
         f"Looking for .pyx files in package dir: {package_dir.absolute().as_posix()}"
     )
-
-    pyx_files = find_cython_files(
-        package_dir,
-        sources=config.sources,
-        # NOTE: I'm going to hard code build dir to excluded dirs for now
-        # use case being that python -m build gets called when build/
-        # already exists. This would cause find_cython_files to find .pyx files
-        # we want to exclude from the build
-        exclude_dirs=config.exclude_dirs + [str(package_dir / "build")],
-    )
+    pyx_files = []
+    for pkg_path in package_paths:
+        pkg_pyx_files = find_cython_files(
+            pkg_path,
+            sources=config.sources,
+            exclude_dirs=config.exclude_dirs + [str(pkg_path / "build")],
+        )
+        pyx_files.extend(pkg_pyx_files)
     logger.debug(f"Found .pyx files: {pyx_files}")
 
     # Create Extensions
     ext_modules = []
     for pyx_file in pyx_files:
         # Convert path to proper module path. Absolute paths are forbidden by pip
-        rel_path = pyx_file.relative_to(package_dir)
         logger.debug(f"\nProcessing: {pyx_file}")
+        pkg_info = resolve_package_path(pyx_file, package_paths)
+        if pkg_info is None:
+            logger.warning(f"Could not determine package for {pyx_file}")
+
+        pkg_name, rel_path = pkg_info
         logger.debug(f"Relative path: {rel_path}")
 
         # Construct full module path including package name
-        module_parts = [project.package_name] + [
-            part for part in rel_path.parent.parts if part != "."
-        ]
+        module_parts = [pkg_name]
+        if rel_path.parent != Path("."):
+            module_parts.extend(part for part in rel_path.parent.parts)
+
         if rel_path.name != "__init__.pyx":
             module_parts.append(rel_path.stem)
 
-        module_path = ".".join(module_parts).split(".", 1)[-1]
+        module_path = ".".join(module_parts)  # .split(".", 1)[-1]
         logger.debug(f"Constructed module path: {module_path}")
 
         ext = Extension(
@@ -350,26 +368,32 @@ def build_wheel(wheel_directory, config_settings=None, metadata_directory=None):
     name = project.package_name
 
     # Find all subdirectories containing .pxd files
-    package_dir = Path(name)
+    package_paths = project.get_all_package_paths()
     pxd_dirs = set()
-    for pxd_file in package_dir.rglob("*.pxd"):
-        rel_path = pxd_file.relative_to(package_dir)
-        pxd_dirs.add(
-            str(rel_path.parent) + "/*.pxd" if rel_path.parent.parts else "*.pxd"
-        )
+    for pkg_path in package_paths:
+        for pxd_file in pkg_path.rglob("*.pxd"):
+            rel_path = pxd_file.relative_to(pkg_path)
+            pxd_dirs.add(
+                str(rel_path.parent) + "/*.pxd" if rel_path.parent.parts else "*.pxd"
+            )
 
     logger.debug(f"Found .pxd patterns: {pxd_dirs}")
+    packages = project.packages
     dist = Distribution(
         {
             "name": name,
             "version": str(project.package_version),
             "ext_modules": _get_ext_modules(project),
-            "packages": [name]
-            + [f"{name}.{subpkg}" for subpkg in find_packages(str(package_dir))],
-            "package_data": {name: ["*.pxd", "*.so"]},
+            "packages": packages,
+            "package_data": {pkg: ["*.pxd", "*.so"] for pkg in packages},
             "include_package_data": True,
         }
     )
+
+    # Add package_dir if specified in setuptools config
+    if project.package_dir:
+        dist_kwargs["package_dir"] = project.package_dir
+        logger.debug(f"Using package_dir mapping: {project.package_dir}")
 
     # Use the custom build_ext command
     dist.cmdclass = {"build_ext": EditableBuildExt}
