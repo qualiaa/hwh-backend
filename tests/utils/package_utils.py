@@ -120,3 +120,48 @@ def copy_test_package(
     )
 
     return dest_path
+
+
+def create_package_structure(
+    base_dir: Path,
+    package_tree: dict,
+    add_init: bool = True,
+    is_src_parent: bool = False,
+):
+    """Create a package directory structure for testing.
+    Example:
+        package_tree = {
+            "src": {  # Won't get __init__.py
+                "mypackage": {  # Will get __init__.py
+                    "core": ["base.pyx", "utils.py"]
+                }
+            }
+        }
+    """
+    for name, contents in package_tree.items():
+        pkg_dir = base_dir / name
+        pkg_dir.mkdir(parents=True, exist_ok=True)
+
+        # Add __init__.py only if we're not in src or another parent dir
+        if add_init and not is_src_parent:
+            print(f"__init__ to {str(pkg_dir)}")
+            (pkg_dir / "__init__.py").touch()
+
+        if isinstance(contents, dict):
+            # Check if this is a src directory or we're already in parent mode
+            # next_is_parent = is_src_parent or name == "src"
+            next_is_parent = False
+
+            # It's either a subdirectory dict or file content dict
+            if any(isinstance(v, (dict, list)) for v in contents.values()):
+                # It's a subdirectory structure
+                create_package_structure(
+                    pkg_dir, contents, add_init=add_init, is_src_parent=next_is_parent
+                )
+            else:
+                # It's a dict of files with content
+                for fname, content in contents.items():
+                    (pkg_dir / fname).write_text(str(content))
+        elif isinstance(contents, list):
+            for file in contents:
+                (pkg_dir / file).touch()

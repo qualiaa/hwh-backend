@@ -5,23 +5,9 @@ import pytest
 
 from hwh_backend.parser import PyProject
 
-from ..utils.package_utils import create_test_package
+from ..utils.package_utils import create_package_structure, create_test_package
 from ..utils.venv_utils import create_virtual_env, run_in_venv, setup_test_env
 from ..utils.verification_utils import verify_editable_install, verify_installation
-
-
-def create_package_structure(base_dir: Path, package_tree: dict):
-    """Helper to create a package directory structure for testing."""
-    for name, contents in package_tree.items():
-        pkg_dir = base_dir / name
-        pkg_dir.mkdir(parents=True, exist_ok=True)
-        (pkg_dir / "__init__.py").touch()
-
-        if isinstance(contents, dict):
-            create_package_structure(pkg_dir, contents)
-        else:
-            for file in contents:
-                (pkg_dir / file).touch()
 
 
 @pytest.fixture
@@ -39,8 +25,32 @@ def package_test_dir(tmp_path):
             }
         }
     }
-    create_package_structure(project_dir, package_tree)
+    create_package_structure(project_dir, package_tree, is_src_parent=True)
     return project_dir
+
+
+def test_src_layout_structure(tmp_path):
+    """Test that src layout is created correctly with __init__.py files in the right places."""
+    package_tree = {
+        "src": {
+            "mypackage": {"core": ["base.pyx", "utils.py"], "utils": ["helpers.py"]}
+        }
+    }
+
+    create_package_structure(tmp_path, package_tree, is_src_parent=True)
+
+    # src directory should not have __init__.py
+    assert not (tmp_path / "src" / "__init__.py").exists()
+
+    # Package and its subdirectories should have __init__.py
+    assert (tmp_path / "src" / "mypackage" / "__init__.py").exists()
+    assert (tmp_path / "src" / "mypackage" / "core" / "__init__.py").exists()
+    assert (tmp_path / "src" / "mypackage" / "utils" / "__init__.py").exists()
+
+    # Check other files exist
+    assert (tmp_path / "src" / "mypackage" / "core" / "base.pyx").exists()
+    assert (tmp_path / "src" / "mypackage" / "core" / "utils.py").exists()
+    assert (tmp_path / "src" / "mypackage" / "utils" / "helpers.py").exists()
 
 
 def test_package_discovery_explicit(package_test_dir, tmp_path):
