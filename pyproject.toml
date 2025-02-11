@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools>=68.0", "wheel>=0.40.0"]
+requires = ["setuptools>=68.0", "wheel>=0.40.0", "setuptools-scm>=8.0.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -47,6 +47,10 @@ Repository = "https://github.com/mkgessen/hwh-backend.git"
 [tool.setuptools]
 packages = ["hwh_backend"]
 package-dir = { "" = "src" }
+
+[tool.setuptools_scm]
+version_scheme = "post-release"
+local_scheme = "dirty-tag"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
