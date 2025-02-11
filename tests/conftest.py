@@ -36,7 +36,9 @@ def hello():
 """
     }
 
-    return create_test_package(tmp_path, "test_pkg", cython_files, backend_dir)
+    return create_test_package(
+        tmp_path, "test_pkg", cython_files, backend_dir, pkg_dir_name=None
+    )
 
 
 @pytest.fixture
