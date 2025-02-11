@@ -125,28 +125,23 @@ class PyProject:
         """Convert a package name to its directory path."""
         base = self.project_dir
 
-        # First check for src-layout by looking at setuptools config
+        # Check for config, where setuptools.packages.find section defines "where"
         packages_find = self.setuptools_config.get("packages", {}).get("find", {})
         if where_paths := packages_find.get("where", []):
             if isinstance(where_paths, str):
                 where_paths = [where_paths]
-            # Use the first where path for now - typically "src"
-            # TODO: Handle multiple where paths if needed
+            # Use the first where path for now
+            # TODO: figure out the cases where there are multiple "where"s.
+            # havent' seen one yet?
             base = base / where_paths[0]
-
-        else:
-            # handle package-dir mapping if where wasn't present
-            for prefix, directory in self.package_dir.items():
-                if prefix == "":  # Root package
-                    base = base / directory
-                    break
-                if package.startswith(prefix):
-                    base = base / directory
-                    package = package[len(prefix) :].lstrip(".")
-                    break
 
         return base / package.replace(".", "/")
 
     def get_all_package_paths(self) -> list[Path]:
         """Get paths for all configured packages."""
-        return [self.get_package_path(pkg) for pkg in self.packages]
+        # For src layout, we only want the root package path
+        # added to stop duplicates
+        if len(self.packages) > 0:
+            root_pkg = self.packages[0].split(".")[0]
+            return [self.get_package_path(root_pkg)]
+        return []

@@ -387,11 +387,19 @@ def build_wheel(wheel_directory, config_settings=None, metadata_directory=None):
         "package_data": {pkg: ["*.pxd", "*.so"] for pkg in packages},
         "include_package_data": True,
     }
+    logger.debug(f"dist kwargs: {dist_kwargs}")
 
-    # Add package_dir if specified in setuptools config
-    if project.package_dir:
-        dist_kwargs["package_dir"] = project.package_dir
-        logger.debug(f"Using package_dir mapping: {project.package_dir}")
+    # Add where/src-layout specific configuration
+    packages_find = project.setuptools_config.get("packages", {}).get("find", {})
+    if where_paths := packages_find.get("where", []):
+        if isinstance(where_paths, str):
+            where_paths = [where_paths]
+
+        # NOTE: Apparently we need to tell to
+        # setuptools/_distutils/command/build_py.py::check_package()
+        # that our "where" directive is the package_dir
+        # That's where the Distribution object propagates the info to
+        dist_kwargs["package_dir"] = {"": where_paths[0]}
 
     dist = Distribution(dist_kwargs)
     # Use the custom build_ext command
