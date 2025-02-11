@@ -379,22 +379,21 @@ def build_wheel(wheel_directory, config_settings=None, metadata_directory=None):
 
     logger.debug(f"Found .pxd patterns: {pxd_dirs}")
     packages = project.packages
-    dist = Distribution(
-        {
-            "name": name,
-            "version": str(project.package_version),
-            "ext_modules": _get_ext_modules(project),
-            "packages": packages,
-            "package_data": {pkg: ["*.pxd", "*.so"] for pkg in packages},
-            "include_package_data": True,
-        }
-    )
+    dist_kwargs = {
+        "name": name,
+        "version": str(project.package_version),
+        "ext_modules": _get_ext_modules(project),
+        "packages": packages,
+        "package_data": {pkg: ["*.pxd", "*.so"] for pkg in packages},
+        "include_package_data": True,
+    }
 
     # Add package_dir if specified in setuptools config
     if project.package_dir:
         dist_kwargs["package_dir"] = project.package_dir
         logger.debug(f"Using package_dir mapping: {project.package_dir}")
 
+    dist = Distribution(dist_kwargs)
     # Use the custom build_ext command
     dist.cmdclass = {"build_ext": EditableBuildExt}
     dist.has_ext_modules = lambda: True
