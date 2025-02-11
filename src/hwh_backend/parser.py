@@ -125,15 +125,25 @@ class PyProject:
         """Convert a package name to its directory path."""
         base = self.project_dir
 
-        # Handle package-dir mapping
-        for prefix, directory in self.package_dir.items():
-            if prefix == "":  # Root package
-                base = base / directory
-                break
-            if package.startswith(prefix):
-                base = base / directory
-                package = package[len(prefix) :].lstrip(".")
-                break
+        # First check for src-layout by looking at setuptools config
+        packages_find = self.setuptools_config.get("packages", {}).get("find", {})
+        if where_paths := packages_find.get("where", []):
+            if isinstance(where_paths, str):
+                where_paths = [where_paths]
+            # Use the first where path for now - typically "src"
+            # TODO: Handle multiple where paths if needed
+            base = base / where_paths[0]
+
+        else:
+            # handle package-dir mapping if where wasn't present
+            for prefix, directory in self.package_dir.items():
+                if prefix == "":  # Root package
+                    base = base / directory
+                    break
+                if package.startswith(prefix):
+                    base = base / directory
+                    package = package[len(prefix) :].lstrip(".")
+                    break
 
         return base / package.replace(".", "/")
 
