@@ -1,12 +1,15 @@
 import subprocess
 from pathlib import Path
 
+import pytest
+
 from ..utils.package_utils import create_package_structure
 from ..utils.venv_utils import create_virtual_env, run_in_venv, setup_test_env
 from ..utils.verification_utils import verify_installation
 
 
-def test_src_layout_installation(tmp_path):
+@pytest.mark.parametrize("pip_arguments", [("--no-build-isolation",), ("-e",)])
+def test_src_layout_installation(tmp_path, pip_arguments):
     """Test installation of a package using src layout."""
     backend_dir = Path(__file__).parent.parent.parent.absolute()
 
@@ -73,16 +76,10 @@ print("Import test passed!")
 
     try:
         # Install package
+        arguments = ["pip", "install", *pip_arguments, str(package_dir)]
         run_in_venv(
             venv_dir,
-            [
-                "pip",
-                "install",
-                "--no-build-isolation",
-                "--config-setting",
-                "verbose=debug",
-                str(package_dir),
-            ],
+            arguments,
             show_output=True,
         )
 
@@ -96,7 +93,8 @@ print("Import test passed!")
         raise
 
 
-def test_src_layout_mixed_modules(tmp_path):
+@pytest.mark.parametrize("pip_arguments", [("--no-build-isolation",), ("-e",)])
+def test_src_layout_mixed_modules(tmp_path, pip_arguments):
     """Test src layout with mixed Python and Cython modules."""
     backend_dir = Path(__file__).parent.parent.parent.absolute()
 
@@ -170,9 +168,10 @@ print("kiitos")
 """)
 
     try:
+        arguments = ["pip", "install", *pip_arguments, str(package_dir)]
         run_in_venv(
             venv_dir,
-            ["pip", "install", "--no-build-isolation", str(package_dir)],
+            arguments,
             show_output=True,
         )
 
