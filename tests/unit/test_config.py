@@ -40,7 +40,7 @@ def test_compiler_directives_types():
 
 
 def test_cython_compiler_directives_constant_language_level():
-    """Test that language_level is constant and properly included in as_dict()."""
+    # TODO: delete - no point of testing language level, since we only accept 3
     directives = CythonCompilerDirectives()
 
     # Test that language_level is constant
