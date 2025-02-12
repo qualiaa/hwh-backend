@@ -261,6 +261,15 @@ class EditableBuildExt(build_ext):
         else:
             logger.debug("Configuring for regular install")
 
+        project = PyProject(Path())
+        config = project.get_hwh_config().cython
+        nthreads = config.nthreads
+        if _CONFIG_OPTIONS and "nthreads" in _CONFIG_OPTIONS:
+            nthreads = _CONFIG_OPTIONS["nthreads"]
+            logger.debug("nthreads overridden by command line option")
+        logger.debug(f"Using nthreads={nthreads}")
+        self.parallel = nthreads
+
     def run(self):
         """Run the build process."""
         logger.debug(f"Running build_ext (editable={self._is_editable})")
