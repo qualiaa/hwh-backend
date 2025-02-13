@@ -4,7 +4,7 @@ import site
 import sysconfig
 from importlib.metadata import distributions
 from pathlib import Path
-from typing import List, Optional, Union
+from typing import Any, List, Optional, Union
 
 from Cython.Build import cythonize
 from setuptools.build_meta import (
@@ -199,7 +199,8 @@ def _get_ext_modules(project: PyProject, config_settings: Optional[dict] = None)
 
         module_path = ".".join(module_parts)  # .split(".", 1)[-1]
         logger.debug(f"Constructed module path: {module_path}")
-
+        logger.debug(f"Include directories: {config.include_dirs}")
+        logger.debug(f"Linking libraries: {config.libraries}")
         ext = Extension(
             module_path,
             [str(pyx_file)],
@@ -279,9 +280,6 @@ class EditableBuildExt(build_ext):
         # Run the actual build
         super().run()
 
-        # if self._is_editable:
-        # self._copy_extension_files()
-
     def _copy_extension_files(self):
         """Copy extension files to their final locations for editable installs."""
         if not self._original_build_lib:
@@ -334,8 +332,13 @@ def _parse_build_settings(config_settings: dict | None = None) -> dict[str, bool
     return result
 
 
-def _build_extension(inplace: bool = False, config_settings={}):
-    """Build the extension modules with better editable install handling."""
+def _build_extension(
+    inplace: bool = False, config_settings={}
+) -> Optional[dict[str, Any]]:
+    """Build the extension modules with better editable install handling.
+
+    returns: dict of kwargs for Distribution object
+    """
 
     logger.debug("=== Starting _build_extension ===")
     logger.debug(f"\n with config {config_settings}")
@@ -347,13 +350,25 @@ def _build_extension(inplace: bool = False, config_settings={}):
 
     project = PyProject(Path())
     name = project.package_name
+    packages = project.packages
 
-    dist = Distribution(
-        {
-            "name": name,
-            "ext_modules": _get_ext_modules(project, config_settings=config_settings),
-        }
-    )
+    dist_kwargs = {
+        "name": name,
+        "version": str(project.package_version),
+        "ext_modules": _get_ext_modules(project, config_settings=config_settings),
+        "packages": packages,
+        "package_data": {pkg: ["*.pxd", "*.so"] for pkg in packages},
+        "include_package_data": True,
+    }
+
+    # Add where/src-layout specific configuration
+    packages_find = project.setuptools_config.get("packages", {}).get("find", {})
+    if where_paths := packages_find.get("where", []):
+        if isinstance(where_paths, str):
+            where_paths = [where_paths]
+        dist_kwargs["package_dir"] = {"": where_paths[0]}
+
+    dist = Distribution(dist_kwargs)
     dist.has_ext_modules = lambda: True
 
     cmd = EditableBuildExt(dist)
@@ -363,6 +378,7 @@ def _build_extension(inplace: bool = False, config_settings={}):
 
     _EXTENSIONS_BUILT = True
     logger.debug("=== Finished _build_extension ===\n")
+    return dist_kwargs
 
 
 def build_wheel(wheel_directory, config_settings=None, metadata_directory=None):
@@ -371,51 +387,13 @@ def build_wheel(wheel_directory, config_settings=None, metadata_directory=None):
     setup_logging(config_settings)
     logger.info("=== Starting build_wheel ===")
 
-    _build_extension(
-        _is_editable_install(), config_settings=config_settings
-    )  # No need to pass inplace flag anymore
-
     project = PyProject(Path())
-    name = project.package_name
 
-    # Find all subdirectories containing .pxd files
-    package_paths = project.get_all_package_paths()
-    pxd_dirs = set()
-    for pkg_path in package_paths:
-        for pxd_file in pkg_path.rglob("*.pxd"):
-            rel_path = pxd_file.relative_to(pkg_path)
-            pxd_dirs.add(
-                str(rel_path.parent) + "/*.pxd" if rel_path.parent.parts else "*.pxd"
-            )
+    # Build extensions first, this now handles all the Distribution setup
+    dist_kwargs = _build_extension(
+        _is_editable_install(), config_settings=config_settings
+    )
 
-    logger.debug(f"Found .pxd patterns: {pxd_dirs}")
-    packages = project.packages
-    dist_kwargs = {
-        "name": name,
-        "version": str(project.package_version),
-        "ext_modules": _get_ext_modules(project),
-        "packages": packages,
-        "package_data": {pkg: ["*.pxd", "*.so"] for pkg in packages},
-        "include_package_data": True,
-    }
-    logger.debug(f"dist kwargs: {dist_kwargs}")
-
-    # Add where/src-layout specific configuration
-    packages_find = project.setuptools_config.get("packages", {}).get("find", {})
-    if where_paths := packages_find.get("where", []):
-        if isinstance(where_paths, str):
-            where_paths = [where_paths]
-
-        # NOTE: Apparently we need to tell to
-        # setuptools/_distutils/command/build_py.py::check_package()
-        # that our "where" directive is the package_dir
-        # That's where the Distribution object propagates the info to
-        dist_kwargs["package_dir"] = {"": where_paths[0]}
-
-    dist = Distribution(dist_kwargs)
-    # Use the custom build_ext command
-    dist.cmdclass = {"build_ext": EditableBuildExt}
-    dist.has_ext_modules = lambda: True
     from wheel.bdist_wheel import bdist_wheel as wheel_command
 
     class BdistWheelCommand(wheel_command):
@@ -427,6 +405,11 @@ def build_wheel(wheel_directory, config_settings=None, metadata_directory=None):
         def run(self):
             logger.debug("Running custom bdist_wheel command")
             super().run()
+
+    # Create distribution using same config from _build_extension
+    dist = Distribution(dist_kwargs)
+    dist.cmdclass = {"build_ext": EditableBuildExt}
+    dist.has_ext_modules = lambda: True
 
     cmd = BdistWheelCommand(dist)
     cmd.dist_dir = wheel_directory

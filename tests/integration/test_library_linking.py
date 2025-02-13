@@ -90,7 +90,8 @@ print(f"Result: {double_value(21)}")
     return package
 
 
-def test_library_linking(tmp_path: Path, linked_package: Path):
+@pytest.mark.parametrize("pip_arguments", [("--no-build-isolation",), ("-e",)])
+def test_library_linking(tmp_path: Path, linked_package: Path, pip_arguments):
     """Test that extension successfully links against shared library."""
     # Create and set up virtual environment
     backend_dir = Path(__file__).parent.parent.parent.absolute()
@@ -98,17 +99,11 @@ def test_library_linking(tmp_path: Path, linked_package: Path):
     venv_dir = create_virtual_env(tmp_path / "venv")
     setup_test_env(venv_dir, backend_dir)
 
+    arguments = ["pip", "install", *pip_arguments, str(linked_package)]
     # Install the package
     run_in_venv(
         venv_dir,
-        [
-            "pip",
-            "install",
-            "--no-build-isolation",
-            "--config-setting",
-            "verbose=debug",
-            str(linked_package),
-        ],
+        arguments,
         show_output=True,
     )
 
