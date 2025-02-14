@@ -1,6 +1,6 @@
 # Halfway House backend
 
-[![Publish to PyPi](https://github.com/mkgessen/hwh-backend/actions/workflows/pypi-publish.yml/badge.svg)](https://github.com/mkgessen/hwh-backend/actions/workflows/pypi-publish.yml)
+[![Tests Passing](https://github.com/mkgessen/hwh-backend/actions/workflows/test-only.yml/badge.svg)](https://github.com/mkgessen/hwh-backend/actions/workflows/test-only.yml)
 
 Provides [PEP-517](https://peps.python.org/pep-0517/) build hooks for building
 Cython extensions with setuptools. Currently supports Cython 0.29.
