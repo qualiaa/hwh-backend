@@ -152,8 +152,8 @@ class PyProject:
 
                 self._package_where = {
                     package: where
-                    for package in rooted_find_packages(where=where)
-                    for where in cfg["where"]
+                    for where in cfg.pop("where")
+                    for package in rooted_find_packages(where=where, **cfg)
                 }
                 return list(self._package_where)
 
