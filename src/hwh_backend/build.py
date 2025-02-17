@@ -350,23 +350,17 @@ def _build_extension(
 
     project = PyProject(Path())
     name = project.package_name
-    packages = project.packages
 
     dist_kwargs = {
         "name": name,
         "version": str(project.package_version),
         "ext_modules": _get_ext_modules(project, config_settings=config_settings),
-        "packages": packages,
-        "package_data": {pkg: ["*.pxd", "*.so"] for pkg in packages},
+        "packages": project.packages,
+        "package_data": {pkg: ["*.pxd", "*.so"] for pkg in project.packages},
         "include_package_data": True,
     }
 
-    # Add where/src-layout specific configuration
-    packages_find = project.setuptools_config.get("packages", {}).get("find", {})
-    if where_paths := packages_find.get("where", []):
-        if isinstance(where_paths, str):
-            where_paths = [where_paths]
-        dist_kwargs["package_dir"] = {"": where_paths[0]}
+    dist_kwargs["package_dir"] = project.package_dir or project.discovered_package_dir
 
     dist = Distribution(dist_kwargs)
     dist.has_ext_modules = lambda: True

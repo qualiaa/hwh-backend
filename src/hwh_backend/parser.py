@@ -126,11 +126,14 @@ class PyProject:
         """Get package directory mapping from setuptools config."""
         return self.setuptools_config.get("package-dir", {})
 
+    @property
+    def discovered_package_dir(self) -> dict:
+        return {pkg: self.get_package_path(pkg) for pkg in self.packages}
+
     @cached_property
     def packages(self) -> list[str]:
         """Get list of packages to include."""
         packages = self._discover_packages()
-        logger.debug("Package list: %s", packages)
         return packages
 
     def _discover_packages(self) -> list[str]:
