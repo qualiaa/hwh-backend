@@ -2,7 +2,7 @@ import dataclasses
 import tomllib
 from collections import defaultdict
 from collections.abc import Mapping
-from functools import cached_property, partial
+from functools import cached_property
 from logging import getLogger
 from pathlib import Path
 from typing import Any, Dict, Optional, TypeAlias
@@ -148,12 +148,17 @@ class PyProject:
             case PackageList(packages=pkgs): return pkgs
             case AutoDiscover(): return rooted_find_packages()
             case FindConfig(cfg=cfg):
-                if not isinstance(cfg.get("where"), list):
+                try:
+                    where_cfg = cfg.pop("where")
+                except KeyError:
                     return rooted_find_packages(**cfg)
+
+                if isinstance(where_cfg, str):
+                    where_cfg = [where_cfg]
 
                 self._package_where = {
                     package: where
-                    for where in cfg.pop("where")
+                    for where in where_cfg
                     for package in rooted_find_packages(where=where, **cfg)
                 }
                 return list(self._package_where)
