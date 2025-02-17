@@ -97,8 +97,7 @@ class PyProject:
     @property
     def setuptools_config(self) -> dict:
         """Get setuptools configuration from pyproject.toml."""
-        result = self.toml.get("tool", {}).get("setuptools", {})
-        return result
+        return self.toml.get("tool", {}).get("setuptools", {})
 
     @cached_property
     def setuptools_package_config(self) -> SetuptoolsPackageConfig:
@@ -133,8 +132,7 @@ class PyProject:
     @cached_property
     def packages(self) -> list[str]:
         """Get list of packages to include."""
-        packages = self._discover_packages()
-        return packages
+        return self._discover_packages()
 
     def _discover_packages(self) -> list[str]:
         """Discover packages using setuptools.packages.find configuration."""
