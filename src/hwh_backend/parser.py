@@ -40,7 +40,7 @@ class PyProject:
             )
         self._data: Optional[Dict[str, Any]] = None
         # This is set in _discover_packages, called by the packages property
-        self._package_directories: Optional[Mapping[str, str]] = None
+        self._package_where: Optional[Mapping[str, str]] = None
 
     @property
     def toml(self):
