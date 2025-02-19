@@ -3,7 +3,6 @@ import tomllib
 from collections import defaultdict
 from collections.abc import Mapping
 from functools import cached_property
-from logging import getLogger
 from pathlib import Path
 from typing import Any, Dict, Optional, TypeAlias
 
@@ -13,8 +12,6 @@ from pyproject_metadata import StandardMetadata
 from setuptools import find_packages
 
 from .hwh_config import HwhConfig
-
-logger = getLogger(__name__)
 
 
 @dataclasses.dataclass(frozen=True)
