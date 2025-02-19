@@ -208,6 +208,7 @@ def _get_ext_modules(project: PyProject, config_settings: Optional[dict] = None)
             language=config.language,
             library_dirs=library_dirs,
             libraries=config.libraries,
+            extra_compile_args=config.extra_compile_args,
             extra_link_args=config.extra_link_args,
             runtime_library_dirs=runtime_library_dirs,
         )

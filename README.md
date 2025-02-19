@@ -70,6 +70,7 @@ Extension module configuration:
 - `include_dirs`: Header search paths
 - `library_dirs`: Library search paths
 - `libraries`: Libraries to link against
+- `extra_compile_args`: Additional compilation arguments
 - `extra_link_args`: Additional linker arguments
 - `runtime_library_dirs`: Runtime library search paths
 
@@ -160,7 +161,7 @@ exclude_dirs = ["tests", "build"]
 include_dirs = ["include"]
 library_dirs = ["/usr/local/lib"]
 libraries = ["mylib"]
-extra_link_args = ["-O3"]
+extra_compile_args = ["-O3"]
 runtime_library_dirs = ["/usr/local/lib"]
 site_packages = "purelib"
 
@@ -169,7 +170,3 @@ boundscheck = false
 wraparound = false
 cdivision = true
 ```
-
-## TODO
-
-- [ ] Allow passing of macros `-D` and extra flags like `-O2`
