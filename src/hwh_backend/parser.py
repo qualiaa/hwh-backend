@@ -1,4 +1,6 @@
 import tomllib
+import warnings
+from collections.abc import Sequence
 from pathlib import Path
 from typing import Any, Dict, Optional
 
@@ -38,22 +40,33 @@ class PyProject:
         return StandardMetadata.from_pyproject(self.toml)
 
     @property
-    def dependencies(self) -> set[Requirement]:
-        metadata = self.metadata
+    def runtime_dependencies(self) -> Sequence[Requirement]:
+        """Runtime dependencies of the package."""
+        install_requires = self.setuptools_config.get("install_requires")
 
-        all_deps = set(metadata.dependencies)
+        dependencies = self.toml["project"].get("dependencies")
 
-        # Add build-system requires if present
-        build_deps = self.toml.get("build-system", {}).get("requires", [])
-        for dep in build_deps:
-            try:
-                req = Requirement(dep)
-                if req not in all_deps:
-                    all_deps.add(req)
-            except ValueError:
-                continue
+        if install_requires is not None:
+            if dependencies is None:
+                warnings.warn(
+                    "Should rename setuptools.install_requires with project.dependencies")
+                return list(map(Requirement, install_requires))
 
-        return all_deps
+            warnings.warn("Found both project.dependencies and setuptools.install_requires."
+                          "Using project.dependencies")
+
+        return list(map(Requirement, dependencies)) if dependencies else []
+
+    @property
+    def build_requires(self) -> Sequence[Requirement]:
+        """Build-time dependencies of the package."""
+        build_requires = self.toml.get("build-system", {}).get("requires", [])
+        return list(map(Requirement, build_requires))
+
+    @property
+    def all_dependencies(self) -> Sequence[Requirement]:
+        """Run- and build-time dependencies of the package."""
+        return self.build_requires + self.runtime_dependencies
 
     @property
     def package_name(self) -> str:
