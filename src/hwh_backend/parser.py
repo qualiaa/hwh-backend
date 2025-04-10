@@ -97,7 +97,9 @@ class PyProject:
     @property
     def package_version(self) -> Optional[Version]:
         """Get the package version from pyproject.toml"""
-        return self.metadata.version
+        # NOTE: Do not use StandardMetadata as it parses a missing version
+        #       as "0.0.0" (???)
+        return self.toml["project"].get("version")
 
     def get_hwh_config(self) -> HwhConfig:
         # TODO: switch to property
@@ -128,6 +130,21 @@ class PyProject:
         if not isinstance(find_cfg, dict):
             raise TypeError("setuptools.packages.find must be table.")
         return FindConfig(find_cfg)
+
+    @property
+    def entrypoints(self) -> dict[str, list[str]]:
+        # TODO: Handle dynamic entrypoints
+        def dict_to_list(d):
+            return [f"{k}={v}" for k, v in d.items()]
+
+        entrypoints = self.metadata.entrypoints
+
+        if self.metadata.scripts:
+            entrypoints["console_scripts"] = self.metadata.scripts
+        if self.metadata.gui_scripts:
+            entrypoints["gui_scripts"] = self.metadata.gui_scripts
+
+        return {name: dict_to_list(group) for name, group in entrypoints.items() if group}
 
     @property
     def package_dir(self) -> dict:
